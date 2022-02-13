@@ -1,6 +1,5 @@
-use std::collections::HashMap;
 use std::fs::OpenOptions;
-use std::io::Write;
+use std::io::{BufRead, BufReader, Write};
 
 fn print_board(board: u16) {
     println!("    {:b}    ", board >> 15);
@@ -54,14 +53,30 @@ fn generateBranch(
 ) -> () {
     let mut file = OpenOptions::new()
         .write(true)
+        .read(true)
         .append(true)
-        .open(file_name)
+        .open(&file_name)
         .unwrap();
-    for _ in 0..num_tabs {
-        write!(file, "\t").unwrap();
+    let reader = BufReader::new(file);
+
+    for (_, line) in reader.lines().enumerate() {
+        if line.unwrap().contains(format!("{:0>16b}", board).as_str()) {
+            return;
+        }
     }
 
-    file.write_all(format!("{:b}\n", board).as_bytes()).unwrap();
+    let mut file = OpenOptions::new()
+        .write(true)
+        .append(true)
+        .open(&file_name)
+        .unwrap();
+
+    for _ in 0..num_tabs {
+        file.write_all(b"\t").unwrap();
+    }
+
+    file.write_all(format!("{:0>16b}\n", board).as_bytes())
+        .unwrap();
 
     let positions = possible_positions(board, &transitions);
 
@@ -191,7 +206,8 @@ fn main() {
         ],
     ];
 
-    let starting_positions: [u16; 15] = [
+    let starting_positions: [u16; 14] = [
+        /*
         0b0_11_111_1111_11111_0,
         0b1_01_111_1111_11111_0,
         0b1_10_111_1111_11111_0,
@@ -207,6 +223,21 @@ fn main() {
         0b1_11_111_1111_11011_0,
         0b1_11_111_1111_11101_0,
         0b1_11_111_1111_11110_0,
+        */
+        0b0111111111111110,
+        0b1010111111111110,
+        0b1011110111011110,
+        0b1111010101011110,
+        0b1010011101011110,
+        0b1010111001001110,
+        0b1000011101001110,
+        0b1010001100001110,
+        0b0000011100001110,
+        0b0000010010001110,
+        0b0000010010010010,
+        0b0000000000011010,
+        0b0000000000000110,
+        0b0000000000001000,
     ];
 
     /*
@@ -235,7 +266,26 @@ fn main() {
         0b0_11_111_1111_11111_0,
         &transitions,
     );
+
+    for i in possible_positions(0b0001011000000110, &transitions) {
+        print_board(i);
+    }
+
+    //0b1_11_101_0101_01111_0: 4237
+    //0b1_01_111_0111_01111_0: 19222
+    //0b1_01_011_1111_11111_0: 646589
+    //0b0_11_111_1111_11111_0: 1293179
+    generateBranch(
+        0,
+        &String::from("solutions/0.txt"),
+        0b0_11_111_1111_11111_0,
+        &transitions,
+    );
     */
+
+    for i in starting_positions.iter() {
+        print_board(*i);
+    }
 
     //This is running for a long time
     //I might have underestimated the number of possible positions
